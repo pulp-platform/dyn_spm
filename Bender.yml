@@ -1,0 +1,30 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+package:
+  name: dyn_mem
+  authors:
+    - "Chi Zhang <chizhang@iis.ee.ethz.ch>"
+
+
+dependencies:
+  tech_cells_generic:  { git: "https://github.com/pulp-platform/tech_cells_generic.git",  version: 0.2.3  }
+  common_verification: { git: "https://github.com/pulp-platform/common_verification.git", version: 0.2.0  }
+  register_interface:  { git: "https://github.com/pulp-platform/register_interface.git",  version: 0.3.1  }
+  common_cells:        { git: "https://github.com/pulp-platform/common_cells.git",        version: 1.24.0 }
+  redundancy_cells:    { git: "https://github.com/pulp-platform/redundancy_cells.git",    rev: "6a011b6"  }
+  axi:                 { git: "https://github.com/pulp-platform/axi.git",                 version: 0.38.0 }
+  axi_riscv_atomics:   { git: "https://github.com/pulp-platform/axi_riscv_atomics",       version: 0.7.0  }
+
+sources:
+  #level 1 
+  - src/dyn_mem_pkg.sv
+  - src/dyn_mem_bank_group.sv
+  - src/dyn_mem_tcdm_crossbar.sv
+  - src/dyn_mem_addr_map.sv
+  - src/dyn_mem_top.sv
+
+  - target: test
+    files:
+      - test/dyn_mem_tb.sv
