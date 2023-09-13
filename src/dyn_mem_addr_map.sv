@@ -35,6 +35,7 @@ module dyn_mem_addr_map #(
     input  tcdm_strb_t                                  tcdm_strb_i,
     input  logic                                        tcdm_req_i,
     output tcdm_data_t                                  tcdm_rdata_o,
+    output logic                                        tcdm_ecc_err_o,
     output logic                                        tcdm_gnt_o,
     output logic                                        tcdm_rvalid_o,
     /// Downstream bank group tcdm interface
@@ -44,6 +45,7 @@ module dyn_mem_addr_map #(
     output bkgp_tcdm_strb_t                             bkgp_tcdm_strb_o,
     output logic                                        bkgp_tcdm_req_o,
     input  bkgp_tcdm_data_t                             bkgp_tcdm_rdata_i,
+    input  logic                                        bkgp_tcdm_ecc_err_i,
     input  logic                                        bkgp_tcdm_gnt_i,
     input  logic                                        bkgp_tcdm_rvalid_i
 );
@@ -107,6 +109,7 @@ module dyn_mem_addr_map #(
     assign bkgp_tcdm_we_o = tcdm_we_i;
     assign bkgp_tcdm_strb_o = tcdm_strb_i;
     assign tcdm_rdata_o = bkgp_tcdm_rdata_i;
+    assign tcdm_ecc_err_o = bkgp_tcdm_ecc_err_i;
     assign tcdm_rvalid_o = bkgp_tcdm_rvalid_i;
 
     //////////////////
