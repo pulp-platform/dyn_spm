@@ -1,4 +1,4 @@
-// Copyright 2023 ETH Zurich and 
+// Copyright 2023 ETH Zurich and
 // University of Bologna
 
 // Solderpad Hardware License
@@ -11,6 +11,8 @@
 
 //Top level for Dynamic Scratchpad Memory
 
+`include "axi/assign.svh"
+
 module dyn_mem_top #(
     /// AXI Ports settings
     parameter int unsigned                  NUM_PORT                    = 2,
@@ -21,6 +23,8 @@ module dyn_mem_top #(
     parameter type                          axi_req_t                   = logic,
     parameter type                          axi_resp_t                  = logic,
     /// Reg Bus for ECC Manager
+    parameter bit                           AXI_USER_ECC_ERR            = 1'b1,
+    parameter int unsigned                  AXI_USER_ECC_ERR_BIT        = 0,
     parameter type                          l2_ecc_reg_req_t            = logic,
     parameter type                          l2_ecc_reg_rsp_t            = logic,
     /// RISCV Atomic setting
@@ -53,9 +57,7 @@ module dyn_mem_top #(
     output axi_resp_t   [NUM_PORT-1:0]                  axi_resp_o,
     /// ECC Reg Bus
     input l2_ecc_reg_req_t                              l2_ecc_reg_req_i,
-    output l2_ecc_reg_rsp_t                             l2_ecc_reg_rsp_o,
-    /// ECC exception
-    output logic                                        ecc_error_o
+    output l2_ecc_reg_rsp_t                             l2_ecc_reg_rsp_o
 );
     //////////////////////////////////////////////
     //        Local Parameters and Types        //
@@ -118,6 +120,7 @@ module dyn_mem_top #(
     tcdm_data_t         [NUM_PORT-1:0]                  tcdm_rdata;
     logic               [NUM_PORT-1:0]                  tcdm_gnt;
     logic               [NUM_PORT-1:0]                  tcdm_rvalid;
+    logic               [NUM_PORT-1:0]                  tcdm_errors;
 
     //bank group tcdm signals after crossbar
     bkgp_tcdm_data_t    [NUM_PORT-1:0]                  mapped_bkgp_tcdm_wdata;
@@ -128,6 +131,7 @@ module dyn_mem_top #(
     bkgp_tcdm_data_t    [NUM_PORT-1:0]                  mapped_bkgp_tcdm_rdata;
     logic               [NUM_PORT-1:0]                  mapped_bkgp_tcdm_gnt;
     logic               [NUM_PORT-1:0]                  mapped_bkgp_tcdm_rvalid;
+    logic               [NUM_PORT-1:0]                  mapped_bkgp_errors;
 
     //bank group tcdm signals after crossbar
     bkgp_tcdm_data_t    [NUM_BANK_GROUP-1:0]            bkgp_tcdm_wdata;
@@ -157,6 +161,7 @@ module dyn_mem_top #(
         axi_resp_t  axi_resp_wo_atop;
         axi_req_t   axi_req_wo_atop_cut;
         axi_resp_t  axi_resp_wo_atop_cut;
+        axi_resp_t  axi_resp_wo_atop_false_error_cut;
 
         axi_riscv_atomics_structs #(
             .AxiAddrWidth     ( AXI_ADDR_WIDTH    ),
@@ -199,29 +204,50 @@ module dyn_mem_top #(
             .mst_resp_i ( axi_resp_wo_atop_cut )
         );
 
+        always_comb begin
+            `AXI_SET_RESP_STRUCT(axi_resp_wo_atop_cut, axi_resp_wo_atop_false_error_cut)
 
-        axi_to_mem #(
+            if (AXI_USER_ECC_ERR) begin
+                axi_resp_wo_atop_cut.r.user[AXI_USER_ECC_ERR_BIT] = axi_resp_wo_atop_false_error_cut.r.resp == axi_pkg::RESP_SLVERR;
+                axi_resp_wo_atop_cut.b.user[AXI_USER_ECC_ERR_BIT] = axi_resp_wo_atop_false_error_cut.b.resp == axi_pkg::RESP_SLVERR;
+            end
+            axi_resp_wo_atop_cut.r.resp = axi_pkg::RESP_OKAY;
+            axi_resp_wo_atop_cut.b.resp = axi_pkg::RESP_OKAY;
+        end
+
+
+        axi_to_detailed_mem #(
             .axi_req_t   (axi_req_t     ),
             .axi_resp_t  (axi_resp_t    ),
             .AddrWidth   (AXI_ADDR_WIDTH),
             .DataWidth   (AXI_DATA_WIDTH),
             .IdWidth     (AXI_ID_WIDTH  ),
+            .UserWidth   (AXI_USER_WIDTH),
             .NumBanks    (1             )
         ) i_axi_to_mem (
             .clk_i,
             .rst_ni,
             .busy_o      (/*open*/),
-            .axi_req_i   (axi_req_wo_atop_cut), 
-            .axi_resp_o  (axi_resp_wo_atop_cut), 
+            .axi_req_i   (axi_req_wo_atop_cut),
+            .axi_resp_o  (axi_resp_wo_atop_false_error_cut),
             .mem_req_o   (tcdm_req[i]   ),
             .mem_gnt_i   (tcdm_gnt[i]   ),
             .mem_addr_o  (tcdm_addr[i]  ),
             .mem_wdata_o (tcdm_wdata[i] ),
             .mem_strb_o  (tcdm_strb[i]  ),
             .mem_atop_o  (/*open*/),
+            .mem_lock_o  (/*open*/),
             .mem_we_o    (tcdm_we[i]    ),
+            .mem_id_o    (/*open*/),
+            .mem_prot_o  (/*open*/),
+            .mem_cache_o (/*open*/),
+            .mem_qos_o   (/*open*/),
+            .mem_region_o(/*open*/),
+            .mem_user_o  (/*open*/),
             .mem_rvalid_i(tcdm_rvalid[i]),
-            .mem_rdata_i (tcdm_rdata[i] )
+            .mem_rdata_i (tcdm_rdata[i] ),
+            .mem_err_i   (tcdm_errors[i]), // We temporarily use the AXI error signal for ECC errors.
+            .mem_exokay_i('0)
         );
 
     end
@@ -250,6 +276,7 @@ module dyn_mem_top #(
             .tcdm_strb_i       (tcdm_strb[i]                ),
             .tcdm_req_i        (tcdm_req[i]                 ),
             .tcdm_rdata_o      (tcdm_rdata[i]               ),
+            .tcdm_ecc_err_o    (tcdm_errors[i]),
             .tcdm_gnt_o        (tcdm_gnt[i]                 ),
             .tcdm_rvalid_o     (tcdm_rvalid[i]              ),
             .bkgp_tcdm_wdata_o (mapped_bkgp_tcdm_wdata[i]   ),
@@ -258,6 +285,7 @@ module dyn_mem_top #(
             .bkgp_tcdm_strb_o  (mapped_bkgp_tcdm_strb[i]    ),
             .bkgp_tcdm_req_o   (mapped_bkgp_tcdm_req[i]     ),
             .bkgp_tcdm_rdata_i (mapped_bkgp_tcdm_rdata[i]   ),
+            .bkgp_tcdm_ecc_err_i(mapped_bkgp_errors[i]),
             .bkgp_tcdm_gnt_i   (mapped_bkgp_tcdm_gnt[i]     ),
             .bkgp_tcdm_rvalid_i(mapped_bkgp_tcdm_rvalid[i]  )
         );
@@ -283,6 +311,7 @@ module dyn_mem_top #(
         .inp_bkgp_tcdm_strb_i  (mapped_bkgp_tcdm_strb   ),
         .inp_bkgp_tcdm_req_i   (mapped_bkgp_tcdm_req    ),
         .inp_bkgp_tcdm_rdata_o (mapped_bkgp_tcdm_rdata  ),
+        .inp_bkgp_tcdm_ecc_err_o(mapped_bkgp_errors),
         .inp_bkgp_tcdm_gnt_o   (mapped_bkgp_tcdm_gnt    ),
         .inp_bkgp_tcdm_rvalid_o(mapped_bkgp_tcdm_rvalid ),
         .out_bkgp_tcdm_wdata_o (bkgp_tcdm_wdata         ),
@@ -291,6 +320,7 @@ module dyn_mem_top #(
         .out_bkgp_tcdm_strb_o  (bkgp_tcdm_strb          ),
         .out_bkgp_tcdm_req_o   (bkgp_tcdm_req           ),
         .out_bkgp_tcdm_rdata_i (bkgp_tcdm_rdata         ),
+        .out_bkgp_tcdm_ecc_err_i(bkgp_errors),
         .out_bkgp_tcdm_gnt_i   (bkgp_tcdm_gnt           ),
         .out_bkgp_tcdm_rvalid_i(bkgp_tcdm_rvalid        )
     );
@@ -345,8 +375,6 @@ module dyn_mem_top #(
         .test_write_mask_no   ( /*open*/)
     );
 
-
     assign ecc_error_o = |bkgp_errors;
-
 
 endmodule : dyn_mem_top

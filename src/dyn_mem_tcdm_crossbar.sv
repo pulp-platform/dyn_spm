@@ -31,6 +31,7 @@ module dyn_mem_tcdm_crossbar#(
   input  bkgp_tcdm_strb_t [NUM_PORT-1:0]        inp_bkgp_tcdm_strb_i,
   input  logic            [NUM_PORT-1:0]        inp_bkgp_tcdm_req_i,
   output bkgp_tcdm_data_t [NUM_PORT-1:0]        inp_bkgp_tcdm_rdata_o,
+  output logic            [NUM_PORT-1:0]        inp_bkgp_tcdm_ecc_err_o,
   output logic            [NUM_PORT-1:0]        inp_bkgp_tcdm_gnt_o,
   output logic            [NUM_PORT-1:0]        inp_bkgp_tcdm_rvalid_o,
   /// Downstream bank group tcdm interface
@@ -40,6 +41,7 @@ module dyn_mem_tcdm_crossbar#(
   output bkgp_tcdm_strb_t [NUM_BANK_GROUP-1:0]  out_bkgp_tcdm_strb_o,
   output logic            [NUM_BANK_GROUP-1:0]  out_bkgp_tcdm_req_o,
   input  bkgp_tcdm_data_t [NUM_BANK_GROUP-1:0]  out_bkgp_tcdm_rdata_i,
+  input  logic            [NUM_BANK_GROUP-1:0]  out_bkgp_tcdm_ecc_err_i,
   input  logic            [NUM_BANK_GROUP-1:0]  out_bkgp_tcdm_gnt_i,
   input  logic            [NUM_BANK_GROUP-1:0]  out_bkgp_tcdm_rvalid_i
 );

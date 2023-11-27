@@ -87,7 +87,6 @@ module dyn_mem_tb import dyn_mem_pkg::*;;
 
     axi_req_t   [NUM_PORT-1:0]  axi_req;
     axi_resp_t  [NUM_PORT-1:0]  axi_resp;
-    logic                       ecc_error;
 
     AXI_BUS_DV #(
         .AXI_ADDR_WIDTH ( AXI_ADDR_WIDTH ),
@@ -133,6 +132,7 @@ module dyn_mem_tb import dyn_mem_pkg::*;;
         .AXI_ID_WIDTH         (AXI_ID_WIDTH),
         .axi_req_t            (axi_req_t),
         .axi_resp_t           (axi_resp_t),
+        .AXI_USER_ECC_ERR     (1'b0),
         .l2_ecc_reg_req_t     (l2_ecc_reg_req_t),
         .l2_ecc_reg_rsp_t     (l2_ecc_reg_rsp_t),
         // Addr Mapping (interleave / non-interleave)
@@ -148,8 +148,7 @@ module dyn_mem_tb import dyn_mem_pkg::*;;
         .axi_req_i            (axi_req   ),
         .axi_resp_o           (axi_resp  ),
         .l2_ecc_reg_req_i     ('0),
-        .l2_ecc_reg_rsp_o     (/*open*/),
-        .ecc_error_o          (ecc_error )
+        .l2_ecc_reg_rsp_o     (/*open*/)
     );
 
     ///////////////////////////////////////////////////
