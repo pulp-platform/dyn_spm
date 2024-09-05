@@ -35,6 +35,7 @@ module dyn_mem_top #(
     parameter int unsigned                  ATM_USER_ID_LSB             = 0,
     parameter int unsigned                  ATM_RISCV_WORD              = 64,
     parameter int unsigned                  ATM_NUM_CUTS                = 1,
+    parameter int unsigned                  CUT_OUT_POP_INP_GNT         = 1,
     /// Mapping rules
     parameter int unsigned                  NUM_MAP_RULES               = dyn_mem_pkg::NUM_MAP_TYPES * NUM_PORT,
     parameter type                          map_rule_t                  = struct packed {int unsigned idx; logic [AXI_ADDR_WIDTH-1:0] start_addr; logic [AXI_ADDR_WIDTH-1:0] end_addr;},
@@ -175,6 +176,7 @@ module dyn_mem_top #(
             .AxiUserIdLsb     ( ATM_USER_ID_LSB ),
             .RiscvWordWidth   ( ATM_RISCV_WORD ),
             .NAxiCuts         ( ATM_NUM_CUTS ),
+            .CutOupPopInpGnt  ( CUT_OUT_POP_INP_GNT ),
             .axi_req_t        ( axi_req_t ),
             .axi_rsp_t        ( axi_resp_t )
         ) i_l2_atomics (
