@@ -59,6 +59,7 @@ module dyn_mem_tcdm_crossbar#(
     select_t bank_select;
     // The response is valid.
     logic valid;
+    logic error;
   } rsp_t;
 
   typedef struct packed {
@@ -130,7 +131,8 @@ module dyn_mem_tcdm_crossbar#(
     rsp_t out_rsp_mux, in_rsp_mux;
     assign in_rsp_mux = '{
       bank_select: bank_select[i],
-      valid: inp_bkgp_tcdm_req_i[i] & inp_bkgp_tcdm_gnt_o[i]
+      valid: inp_bkgp_tcdm_req_i[i] & inp_bkgp_tcdm_gnt_o[i],
+      error: out_bkgp_tcdm_ecc_err_i[i]
     };
     // A this is a fixed latency interconnect a simple shift register is
     // sufficient to track the arbitration decisions.
@@ -145,6 +147,7 @@ module dyn_mem_tcdm_crossbar#(
     );
     assign inp_bkgp_tcdm_rdata_o[i] = out_bkgp_tcdm_rdata_i[out_rsp_mux.bank_select];
     assign inp_bkgp_tcdm_rvalid_o[i] = out_rsp_mux.valid;
+    assign inp_bkgp_tcdm_ecc_err_o[i] = out_rsp_mux.error;
   end
 
 
