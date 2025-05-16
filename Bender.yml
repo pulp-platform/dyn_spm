@@ -13,7 +13,7 @@ dependencies:
   common_verification: { git: "https://github.com/pulp-platform/common_verification.git", version: 0.2.0  }
   register_interface:  { git: "https://github.com/pulp-platform/register_interface.git",  version: 0.3.1  }
   common_cells:        { git: "https://github.com/pulp-platform/common_cells.git",        version: 1.24.0 }
-  redundancy_cells:    { git: "https://github.com/pulp-platform/redundancy_cells.git",    rev: "6a011b6"  }
+  redundancy_cells:    { git: "https://github.com/pulp-platform/redundancy_cells.git",    rev: astral-v0  }
   axi:                 { git: "https://github.com/pulp-platform/axi.git",                 version: 0.38.0 }
   axi_riscv_atomics:   { git: "https://github.com/pulp-platform/axi_riscv_atomics",       version: 0.7.0  }
 
