@@ -333,6 +333,7 @@ module dyn_mem_top #(
         dyn_mem_bank_group#(
             .BANK_SIZE_IN_WORD      (BANK_SIZE_IN_WORD),
             .NUM_BANK_PER_BANK_GROUP(NUM_BANK_PER_BANK_GROUP),
+            .BANK_DATA_WIDTH        (BANK_DATA_WIDTH),
             .bkgp_tcdm_data_t       (bkgp_tcdm_data_t),
             .bkgp_tcdm_strb_t       (bkgp_tcdm_strb_t),
             .bkgp_tcdm_addr_t       (bkgp_tcdm_addr_t),

@@ -1,4 +1,4 @@
-// Copyright 2023 ETH Zurich and 
+// Copyright 2023 ETH Zurich and
 // University of Bologna
 
 // Solderpad Hardware License
@@ -15,6 +15,7 @@
 module dyn_mem_bank_group #(
     parameter int unsigned                      NUM_BANK_PER_BANK_GROUP = 2,
     parameter int unsigned                      BANK_SIZE_IN_WORD       = 2**16,
+    parameter int unsigned                      BANK_DATA_WIDTH         = 32,
     parameter type                              bank_tcdm_data_t        = logic,
     parameter type                              bank_tcdm_addr_t        = logic,
     parameter type                              bank_tcdm_strb_t        = logic,
@@ -52,32 +53,31 @@ module dyn_mem_bank_group #(
     logic                                       [NUM_BANK_PER_BANK_GROUP-1:0] bank_tcdm_gnt;
     logic                                       [NUM_BANK_PER_BANK_GROUP-1:0] bank_error;
 
-    for (genvar i = 0; i < NUM_BANK_PER_BANK_GROUP; i++) begin
-        
+    localparam int unsigned PARITY_WIDTH = 7;
+    localparam int unsigned PROTECTED_WIDTH = BANK_DATA_WIDTH + PARITY_WIDTH;
 
-        ecc_sram_wrap #(
-            .BankSize        (BANK_SIZE_IN_WORD),
+    for (genvar i = 0; i < NUM_BANK_PER_BANK_GROUP; i++) begin
+       ecc_sram #(
+            .NumWords        (BANK_SIZE_IN_WORD),
             .InputECC        (0),
-            .EnableTestMask  (0)
+            .UnprotectedWidth (BANK_DATA_WIDTH),
+            .ProtectedWidth   (PROTECTED_WIDTH)
         ) i_ecc_sram_wrap (
             .clk_i,
             .rst_ni,
-            .test_enable_i        ('0),
             .scrub_trigger_i      (ecc_scrub_triggers_i[i]),
             .scrubber_fix_o       (ecc_scrubber_fixes_o[i]),
             .scrub_uncorrectable_o(ecc_scrub_uncorrectables_o[i]),
-            .tcdm_wdata_i         (bank_tcdm_wdata[i]   ),
-            .tcdm_add_i           (bank_tcdm_addr[i]    ),
-            .tcdm_req_i           (bank_tcdm_req[i]     ),
-            .tcdm_wen_i           (~bank_tcdm_we[i]      ),
-            .tcdm_be_i            (bank_tcdm_strb[i]    ),
-            .tcdm_rdata_o         (bank_tcdm_rdata[i]   ),
-            .tcdm_gnt_o           (bank_tcdm_gnt[i]     ),
+            .wdata_i         (bank_tcdm_wdata[i]   ),
+            .addr_i          (bank_tcdm_addr[i][$clog2(BANK_SIZE_IN_WORD)-1:0]),
+            .req_i           (bank_tcdm_req[i]     ),
+            .we_i            (bank_tcdm_we[i]      ),
+            .be_i            (bank_tcdm_strb[i]    ),
+            .rdata_o         (bank_tcdm_rdata[i]   ),
+            .gnt_o           (bank_tcdm_gnt[i]     ),
             .single_error_o       (ecc_bank_faults_o[i]),
-            .multi_error_o        (bank_error[i]),
-            .test_write_mask_ni   ('0)
+            .multi_error_o        (bank_error[i])
         );
-
     end
 
     ////////////////////
@@ -87,7 +87,7 @@ module dyn_mem_bank_group #(
     /*
         we send the requests to banks when:
             1. there is a valid request to this bank group
-            2. two banks are all ready to accept new requests 
+            2. two banks are all ready to accept new requests
     */
     logic handshack;
     assign handshack =  bkgp_tcdm_req_i & (&bank_tcdm_gnt);
